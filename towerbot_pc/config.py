@@ -8,12 +8,17 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
 from .strategy import plan_from_config
 
-ROOT = Path(__file__).resolve().parent.parent
+# onefile/onedir 冻结后 __file__ 在临时解压目录；配置和日志应放在 exe 旁边。
+if getattr(sys, "frozen", False):
+    ROOT = Path(sys.executable).resolve().parent
+else:
+    ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = ROOT / "config"
 DEFAULT_CONFIG_PATH = CONFIG_DIR / "tower.json"
 CALIBRATION_PATH = CONFIG_DIR / "calibration.json"
