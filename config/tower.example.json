@@ -1,0 +1,40 @@
+{
+  "adb": {
+    "path": "auto",
+    "serial": "auto",
+    "host": "127.0.0.1",
+    "port": 5555,
+    "package": "com.TechTreeGames.TheTower",
+    "activity": "com.unity3d.player.UnityPlayerActivity"
+  },
+  "display": {
+    "wm_size": "2400x1080",
+    "density": 240,
+    "expected_frame": [
+      1080,
+      2400
+    ]
+  },
+  "strategy": {
+    "name": "示例策略",
+    "steps": []
+  },
+  "runs": {
+    "mode": "single",
+    "count": 1
+  },
+  "limits": {
+    "max_runtime_min": 480,
+    "max_consecutive_failures": 8,
+    "max_purchases_per_step": 500
+  },
+  "delays": {
+    "action_interval": 1.0,
+    "after_tap": 0.35,
+    "after_tab": 0.35,
+    "after_popup_open": 0.4,
+    "after_popup_close": 0.3,
+    "idle_poll": 1.0,
+    "insufficient_gold": 5.0
+  }
+}

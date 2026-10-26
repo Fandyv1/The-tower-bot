@@ -1,0 +1,23 @@
+# 依赖缓存 / 临时文件
+.tmp/
+.pipcache/
+.vendor/__pycache__/
+__pycache__/
+*.pyc
+
+# 本地工具 / 私人配置 / 内部交接
+.dsh/
+HANDOFF.md
+config/tower.json
+config/test_*.json
+
+# 运行产物
+logs/
+phase0*.png
+before_tap.png
+after_tap.png
+after_home.png
+window.xml
+
+# 保留参考帧
+!tests/frames/

@@ -1,0 +1,6 @@
+# 运行时依赖
+numpy>=2.0
+opencv-python>=4.8
+Pillow>=10.0
+rapidocr-onnxruntime>=1.4.4
+onnxruntime>=1.20
