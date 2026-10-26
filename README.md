@@ -14,13 +14,16 @@ Windows 上通过 BlueStacks 5 + ADB 运行的《The Tower - Idle Tower Defense�
 - 识别价格、等级和满级状态，失败时停止并保存截图；
 - 提供图形界面，可编辑策略、dry-run、暂停和停止。
 
-## 直接使用 EXE
+## 下载与运行
 
 1. 打开 BlueStacks 5 的 ADB 访问；
 2. 把游戏设置为竖屏，截图尺寸应为 `1080×2400`；
-3. 从 [GitHub Releases](https://github.com/Fandyv1/The-tower-bot/releases) 下载 `TheTowerBot.exe`；
-4. 把 exe 放到一个可写目录，双击运行；
-5. 首次运行会在 exe 旁生成 `config/` 和 `logs/`。
+3. 从 [GitHub Releases](https://github.com/Fandyv1/The-tower-bot/releases) 下载 `TheTowerBot-v*-win64.zip`；
+4. **解压整个 ZIP**，不要只把 exe 拖出来；
+5. 双击解压目录里的 `TheTowerBot.exe`；
+6. 首次运行会在 exe 旁生成 `config/` 和 `logs/`。
+
+> 使用 ZIP 的 onedir 版本，不需要解压到系统临时目录，避免 `Could not create temporary directory!`。
 
 ### 基本操作
 
@@ -64,13 +67,19 @@ python -m towerbot_pc.cli run --infinite
 
 遇到问题先看日志和失败截图。已知限制：滚动依赖 OCR、极端低画质可能读不到属性名；自动化可能违反游戏服务条款。
 
-## 打包
+## 打包与签名
 
 ```powershell
-python -m PyInstaller packaging\TheTowerBot.spec --noconfirm --clean
+python -m PyInstaller packaging\TheTowerBotOnedir.spec --noconfirm --clean
 ```
 
-生成的 `dist/TheTowerBot.exe` 为单文件 GUI 程序。构建需要 PyInstaller；配置文件默认生成在 exe 同目录。
+生成 `dist/TheTowerBot/` 目录，压缩后发布。发布包默认未做 Authenticode 签名，Windows SmartScreen 可能提示；如有 PFX 证书：
+
+```powershell
+$env:CODE_SIGN_PFX = "C:\path\cert.pfx"
+$env:CODE_SIGN_PASSWORD = "password"
+.\packaging\sign.ps1 -Path .\dist\TheTowerBot\TheTowerBot.exe
+```
 
 ## License
 
