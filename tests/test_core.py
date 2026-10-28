@@ -283,6 +283,22 @@ class AdbRetryTests(unittest.TestCase):
         self.assertEqual(adb.connects, 1)
 
 
+class LevelPopupTests(unittest.TestCase):
+    def test_popup_attribute_validation(self):
+        from towerbot_pc.engine import Engine
+        from towerbot_pc.ocr import Ocr
+
+        img = load_image(ROOT / "tests" / "frames" / "popup_level.png")
+        h, w = img.shape[:2]
+        layout = build_layout(img, Rect(0, int(h * 0.68), w, 100))
+        engine = Engine.__new__(Engine)
+        engine.ocr = Ocr()
+        # 样本弹窗是「防御/生命值再生」
+        self.assertTrue(engine._popup_attribute_matches(img, layout, "defense", 1))
+        self.assertFalse(engine._popup_attribute_matches(img, layout, "defense", 0))
+        self.assertFalse(engine._popup_attribute_matches(img, layout, "attack", 0))
+
+
 class MaxedCardTests(unittest.TestCase):
     def test_utility_maxed_frame(self):
         from towerbot_pc.engine import Engine

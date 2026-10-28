@@ -384,38 +384,79 @@ class Engine:
         self._save_failure(f"scroll_not_found_{tab}_{slot}", img)
         raise EngineError(f"滚动后仍找不到属性「{label}」")
 
+    def _popup_attribute_matches(self, img: np.ndarray, layout: Layout,
+                                 tab: str, slot: int) -> bool:
+        """确认等级弹窗确实是目标属性，避免把别的卡等级当成当前卡。"""
+        expected = display_name(tab, slot).replace(" ", "").strip()
+        try:
+            lines = self.ocr.recognize(img, layout.popup_region, scale=1.5)
+        except Exception:
+            return True
+        texts = {l.text.replace(" ", "").strip() for l in lines}
+        known = {
+            display_name(name, i).replace(" ", "").strip()
+            for name in ("attack", "defense", "utility")
+            for i in range(slot_count(name))
+        }
+        found = {name for name in known if name in texts}
+        if expected in found:
+            return True
+        if found:
+            LOG.warning("等级弹窗属性不匹配: 期望「%s」，识别到 %s",
+                        expected, "、".join(sorted(found)))
+            return False
+        # 名称 OCR 没读出来时不拦，继续用等级数字投票。
+        return True
+
     def read_level(self, tab: str, slot: int) -> int:
-        """打开等级弹窗读取真实等级；失败不按返回键，避免误退游戏。"""
+        """打开等级弹窗读取真实等级；属性不匹配时回顶重试一次。"""
         card, info, _ = self.locate_card(tab, slot)
         _, layout = self.capture()
-        LOG.info("读取等级: 点击属性名 %s", info)
-        self.adb.tap(*info)
-        self._sleep("after_popup_open", 0.55)
-        img2 = decode_png(self.adb.screencap())
-        if not self._level_popup_open(img2, layout):
-            # 点击可能没命中（动画/遮挡），再试一次
-            LOG.warning("等级弹窗未出现，重试一次")
+        for attempt in range(1, 3):
+            LOG.info("读取等级: 点击属性名 %s（第 %s 次）", info, attempt)
             self.adb.tap(*info)
-            self._sleep("after_popup_open", 0.75)
+            self._sleep("after_popup_open", 0.55)
             img2 = decode_png(self.adb.screencap())
-        if not self._level_popup_open(img2, layout):
-            self._save_failure("level_popup_failed", img2)
-            raise EngineError("等级弹窗识别失败；已停止，避免误点")
-        level = ocr_level(self.ocr, img2, layout.level_popup, layout.level_number)
-        if level is None:
-            self._save_failure("level_popup_failed", img2)
-            raise EngineError("等级弹窗已打开但读不到等级；已停止")
-        self.adb.keyevent(4)
-        self._sleep("after_popup_close", 0.45)
-        # 返回键偶尔会被动画吞掉；确认弹窗真的关掉，避免后续截图被遮罩
-        for _ in range(2):
-            img3 = decode_png(self.adb.screencap())
-            if not self._level_popup_open(img3, layout):
-                break
-            LOG.warning("等级弹窗仍在，再按一次返回")
+            if not self._level_popup_open(img2, layout):
+                # 点击可能没命中（动画/遮挡），再试一次
+                LOG.warning("等级弹窗未出现，重试一次")
+                self.adb.tap(*info)
+                self._sleep("after_popup_open", 0.75)
+                img2 = decode_png(self.adb.screencap())
+
+            if not self._level_popup_open(img2, layout):
+                self._save_failure("level_popup_failed", img2)
+                raise EngineError("等级弹窗识别失败；已停止，避免误点")
+
+            if not self._popup_attribute_matches(img2, layout, tab, slot):
+                self._save_failure("level_wrong_attribute", img2)
+                self.adb.keyevent(4)
+                self._sleep("after_popup_close", 0.55)
+                if attempt == 1:
+                    LOG.warning("等级弹窗属性错误，回顶重新定位后重试")
+                    self.scroll_to_top(tab)
+                    card, info, _ = self.locate_card(tab, slot)
+                    _, layout = self.capture()
+                    continue
+                raise EngineError("等级弹窗属性不匹配；已停止，避免误读")
+
+            level = ocr_level(self.ocr, img2, layout.level_popup, layout.level_number)
+            if level is None:
+                self._save_failure("level_popup_failed", img2)
+                raise EngineError("等级弹窗已打开但读不到等级；已停止")
             self.adb.keyevent(4)
-            self._sleep("after_popup_close", 0.60)
-        return level
+            self._sleep("after_popup_close", 0.45)
+            # 返回键偶尔会被动画吞掉；确认弹窗真的关掉，避免后续截图被遮罩
+            for _ in range(2):
+                img3 = decode_png(self.adb.screencap())
+                if not self._level_popup_open(img3, layout):
+                    break
+                LOG.warning("等级弹窗仍在，再按一次返回")
+                self.adb.keyevent(4)
+                self._sleep("after_popup_close", 0.60)
+            return level
+
+        raise EngineError("等级弹窗属性连续不匹配；已停止")
 
     def _level_popup_open(self, img: np.ndarray, layout: Layout) -> bool:
         """必须看到“当前等级/等级上限”才算弹窗，避免把局内文字误判。"""
@@ -805,6 +846,7 @@ class Engine:
                             initial_level, final)
                 for _ in range(2):
                     time.sleep(0.6)
+                    self.scroll_to_top(step.tab)
                     final = self.read_level(step.tab, step.slot)
                     if final >= initial_level:
                         break
