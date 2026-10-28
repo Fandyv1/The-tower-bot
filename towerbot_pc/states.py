@@ -24,6 +24,7 @@ class State(str, Enum):
     CLOUD_SAVE = "cloud_save"
     REWARD_MODAL = "reward_modal"
     GAME_OVER = "game_over"
+    EXIT_CONFIRM = "exit_confirm"
     HOME = "home"
     LOADING = "loading"
     UNKNOWN = "unknown"
@@ -60,6 +61,8 @@ def classify_text(text: str, has_title_band: bool = False) -> State:
         return State.RESUME
     if "同意以加载" in compact or ("警告" in compact and "存档" in compact):
         return State.CLOUD_SAVE
+    if "退出游戏" in compact and ("确定要退出" in compact or "确认退出" in compact):
+        return State.EXIT_CONFIRM
     if (any(k in compact for k in ("游戏统计数据", "游戏统计", "游戏结束"))
             or ("重试" in compact and ("主页" in compact or "主菜单" in compact))
             or ("最高波次" in compact and "重试" in compact)):

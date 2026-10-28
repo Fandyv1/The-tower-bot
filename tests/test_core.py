@@ -114,6 +114,9 @@ class StateTests(unittest.TestCase):
         self.assertEqual(classify_text("游戏统计数据 重试 主页"), State.GAME_OVER)
         self.assertEqual(classify_text("游戏统计 最高波次 重试"), State.GAME_OVER)
         self.assertEqual(classify_text("游戏结束 重新开始"), State.GAME_OVER)
+        self.assertEqual(
+            classify_text("退出游戏 确定要退出游戏吗？ 退出"), State.EXIT_CONFIRM,
+        )
         self.assertEqual(classify_text("接续战斗 失调闯关"), State.HOME)
         self.assertEqual(classify_text("Loading Main Scene 99.0%"), State.LOADING)
         self.assertEqual(classify_text("完全看不懂的界面"), State.UNKNOWN)
@@ -281,6 +284,16 @@ class AdbRetryTests(unittest.TestCase):
         self.assertEqual(adb.shell_retry("input", "swipe"), "ok")
         self.assertEqual(adb.attempts, 2)
         self.assertEqual(adb.connects, 1)
+
+
+class ExitConfirmTests(unittest.TestCase):
+    def test_exit_confirm_frame(self):
+        from towerbot_pc.ocr import Ocr
+        from towerbot_pc.states import State, StateDetector
+
+        img = load_image(ROOT / "tests" / "frames" / "exit_confirm.png")
+        det = StateDetector(Ocr()).detect(img)
+        self.assertEqual(det.state, State.EXIT_CONFIRM)
 
 
 class LevelPopupTests(unittest.TestCase):
