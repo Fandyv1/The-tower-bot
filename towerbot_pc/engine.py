@@ -852,8 +852,14 @@ class Engine:
                         break
                 if final < initial_level:
                     self._save_failure("level_regressed", self.screenshot())
-                    raise EngineError(
-                        f"等级回退异常: 初始 {initial_level} → 当前 {final}"
+                    LOG.warning(
+                        "等级回退无法复核: 初始 %s → 当前 %s；按本局结束处理",
+                        initial_level, final,
+                    )
+                    # 长时间运行后本局可能已经结束并自动进入新一局；
+                    # 交给多局/无限循环计数并从头执行，而不是杀死整个进程。
+                    raise RunEnded(
+                        f"等级回退，疑似本局已重置: {initial_level} → {final}"
                     )
 
             LOG.info("步骤结束校验: 真实等级 %s（目标 %s）", final, goal)
