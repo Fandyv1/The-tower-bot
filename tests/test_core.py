@@ -296,6 +296,42 @@ class ExitConfirmTests(unittest.TestCase):
         self.assertEqual(det.state, State.EXIT_CONFIRM)
 
 
+class LevelPopupRunEndTests(unittest.TestCase):
+    def test_popup_disappears_on_game_over(self):
+        from types import SimpleNamespace
+
+        from towerbot_pc.engine import Engine, RunEnded
+        from towerbot_pc.ocr import Ocr
+        from towerbot_pc.states import StateDetector
+
+        class FakeAdb:
+            def __init__(self, png: bytes):
+                self.png = png
+                self.taps = []
+
+            def screencap(self):
+                return self.png
+
+            def tap(self, x, y):
+                self.taps.append((x, y))
+
+        path = ROOT / "tests" / "frames" / "game_over_stats.png"
+        img = load_image(path)
+        engine = Engine.__new__(Engine)
+        engine.adb = FakeAdb(path.read_bytes())
+        engine.detector = StateDetector(Ocr())
+        engine.game_over_action = "home"
+        engine.locate_card = lambda tab, slot: (None, (1, 1), (0, 0))
+        engine.capture = lambda: (img, SimpleNamespace())
+        engine._level_popup_open = lambda *args: False
+        engine._sleep = lambda *args: None
+
+        with self.assertRaises(RunEnded):
+            engine.read_level("attack", 0)
+        self.assertGreaterEqual(len(engine.adb.taps), 1)
+        self.assertGreater(engine.adb.taps[-1][0], img.shape[1] * 0.5)
+
+
 class LevelPopupTests(unittest.TestCase):
     def test_popup_attribute_validation(self):
         from towerbot_pc.engine import Engine

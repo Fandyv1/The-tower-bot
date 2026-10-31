@@ -418,13 +418,24 @@ class Engine:
             self._sleep("after_popup_open", 0.55)
             img2 = decode_png(self.adb.screencap())
             if not self._level_popup_open(img2, layout):
-                # 点击可能没命中（动画/遮挡），再试一次
+                # 弹窗消失可能是本局刚好结束；先看状态，绝不能盲点 Game Over 页面。
+                det = self.detector.detect(img2)
+                self.last_detection = det
+                if det.state in (State.GAME_OVER, State.HOME):
+                    LOG.warning("等级弹窗期间本局结束: %s", det.state.value)
+                    self._raise_run_ended(det, img2)
+                # 仍确认是局内，才重试点击属性名
                 LOG.warning("等级弹窗未出现，重试一次")
                 self.adb.tap(*info)
                 self._sleep("after_popup_open", 0.75)
                 img2 = decode_png(self.adb.screencap())
 
             if not self._level_popup_open(img2, layout):
+                det = self.detector.detect(img2)
+                self.last_detection = det
+                if det.state in (State.GAME_OVER, State.HOME):
+                    LOG.warning("等级弹窗期间本局结束: %s", det.state.value)
+                    self._raise_run_ended(det, img2)
                 self._save_failure("level_popup_failed", img2)
                 raise EngineError("等级弹窗识别失败；已停止，避免误点")
 
